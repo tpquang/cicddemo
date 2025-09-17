@@ -1,0 +1,72 @@
+# Workflow CI/CD cho Next.js (static export) deploy lên GitHub Pages
+# Các chú thích (bắt đầu bằng #) giải thích mục đích từng cấu hình/step
+
+name: CI/CD
+
+on:
+  # Chạy workflow khi push lên nhánh main
+  push:
+    branches: [ main ]
+  # Cho phép chạy thủ công từ tab Actions
+  workflow_dispatch: {}
+
+# Quyền cần thiết để deploy Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Đảm bảo chỉ có một job deploy chạy đồng thời
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # 1) Checkout mã nguồn
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2) Thiết lập Node.js với cache npm để tăng tốc cài phụ thuộc
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3) Cài dependencies
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      # 4) Build Next.js
+      - name: Build
+        run: npm run build
+
+      # 5) Export tĩnh ra thư mục ./out (phục vụ cho GitHub Pages)
+      - name: Export static site
+        run: npm run export
+
+      # 6) Thiết lập cấu hình Pages (ví dụ các header cơ bản)
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # 7) Upload artifact từ thư mục out để job deploy sử dụng
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+  deploy:
+    # Job deploy chạy sau khi build thành công
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # 8) Deploy artifact đã upload lên GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

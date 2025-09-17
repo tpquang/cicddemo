@@ -1,0 +1,18 @@
+# Node
+node_modules
+.pnp
+.pnp.js
+
+# Next.js
+.next
+out
+dist
+*.log
+.env*
+
+# Editor
+.DS_Store
+.idea
+.vscode
+
+
