@@ -43,33 +43,34 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         port: ${{ secrets.PORT }}
         script: |
-          # Tạo thư mục backup nếu cần
+          # Di chuyển đến thư mục project
+          cd /home/quangtp/projects/nextjs-app
+          
+          # Pull code mới
+          git pull origin main
+          
+          # Install dependencies
+          npm install
+          
+          # Build ứng dụng
+          npm run build
+          
+          # Tạo backup
           if [ -d "/var/www/html" ]; then
             sudo cp -r /var/www/html /var/www/html.backup.$(date +%Y%m%d_%H%M%S) || true
           fi
           
-          # Tạo thư mục nếu chưa tồn tại
-          sudo mkdir -p /var/www/html
-          
-          # Xóa nội dung cũ
-          sudo rm -rf /var/www/html/*
-          
-          # Copy file deployment
-          sudo cp /tmp/deployment.tar.gz /var/www/html/
-          
-          # Giải nén
-          cd /var/www/html
-          sudo tar -xzf deployment.tar.gz
-          
-          # Xóa file tar
-          sudo rm deployment.tar.gz
+          # Deploy files mới
+          sudo cp -r out/* /var/www/html/
           
           # Set permissions
           sudo chown -R www-data:www-data /var/www/html
           sudo chmod -R 755 /var/www/html
           
-          # Restart nginx nếu cần
-          sudo systemctl reload nginx || true
+          # Reload nginx
+          sudo systemctl reload nginx
+          
+          echo "✅ Deploy completed successfully!"
           
     - name: Upload deployment files
       uses: actions/upload-artifact@v4
